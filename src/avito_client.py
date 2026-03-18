@@ -189,8 +189,7 @@ class AvitoAPIClient:
     def get_chats_since(self, since_time: datetime) -> List[AvitoChat]:
         """
         Получает чаты из Avito с указанного времени
-        Использует Messenger API v2/v3
-        Документация: https://api.avito.ru/docs/messenger/
+        Использует Messenger API v2: /messenger/v2/accounts/{user_id}/chats
         """
         try:
             if not self.user_id:
@@ -203,9 +202,7 @@ class AvitoAPIClient:
             # Получаем список чатов через V2 API
             params = {
                 "limit": 100,
-                "offset": 0,
-                "unread_only": False,
-                "chat_types": "u2i"  # только чаты по объявлениям
+                "offset": 0
             }
             
             response = self._make_request(
@@ -240,7 +237,7 @@ class AvitoAPIClient:
                     
                     chat_id = thread["id"]
                     
-                    # Получаем все сообщения чата через V3 API
+                    # Получаем все сообщения чата
                     messages = self._get_chat_messages(chat_id)
                     
                     # Извлекаем информацию о пользователях
