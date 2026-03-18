@@ -6,12 +6,13 @@ from src.models import AvitoCall, AvitoChat
 from config.config import Config
 import time
 import base64
+import re
 
 class AvitoAPIClient:
     """
     Клиент для работы с официальным API Avito
-    Использует CallTracking API для получения звонков
-    Документация: https://api.avito.ru/docs/calltracking/
+    Использует CallTracking API для получения звонков и Messenger API для чатов
+    Документация: https://api.avito.ru/docs/
     """
     
     def __init__(self):
@@ -128,7 +129,6 @@ class AvitoAPIClient:
             calls = []
             
             # Обрабатываем ответ
-                        # Обрабатываем ответ
             if "calls" in response:
                 for item in response["calls"]:
                     try:
@@ -144,7 +144,7 @@ class AvitoAPIClient:
                             your_phone=item.get("virtualPhone", ""),
                             call_time=call_time,
                             duration=item.get("talkDuration", 0),
-                            waitingTime=item.get("waitingDuration", 0),  # Теперь поле есть в модели
+                            waitingTime=item.get("waitingDuration", 0),
                             status="successful" if item.get("talkDuration", 0) > 0 else "unsuccessful",
                             ad_id=str(item.get("itemId", "")) if item.get("itemId") else None,
                             ad_title="",  # Название объявления нужно получать отдельно
@@ -192,11 +192,18 @@ class AvitoAPIClient:
         Использует API: /messenger/v1/threads
         """
         try:
-            # Проверяем доступ к мессенджеру
-            threads = self._make_request("GET", "/messenger/v1/threads", params={"limit": 100})
+            print(f"💬 Запрашиваем чаты с {since_time}")
+            
+            # Получаем список чатов
+            params = {
+                "limit": 100,
+                "offset": 0
+            }
+            
+            response = self._make_request("GET", "/messenger/v1/threads", params=params)
             
             chats = []
-            threads_list = threads.get("threads", [])
+            threads_list = response.get("threads", [])
             print(f"💬 Найдено чатов: {len(threads_list)}")
             
             for thread in threads_list:
@@ -217,36 +224,59 @@ class AvitoAPIClient:
                     
                     # Извлекаем сообщения
                     messages = []
+                    client_phone = None
+                    
                     for msg in chat_detail.get("messages", []):
+                        text = msg.get("text", {}).get("markdown", "")
+                        direction = "incoming" if msg.get("direction") == "in" else "outgoing"
+                        
                         messages.append({
-                            "text": msg.get("text", {}).get("markdown", ""),
+                            "text": text,
                             "time": msg["created"],
-                            "direction": "incoming" if msg.get("direction") == "in" else "outgoing",
+                            "direction": direction,
                             "author": msg.get("author", {}).get("name", "Неизвестно")
                         })
+                        
+                        # Пытаемся найти номер телефона в сообщениях клиента
+                        if direction == "incoming" and not client_phone:
+                            phones = re.findall(r"\+?7[0-9]{10}|8[0-9]{10}", text)
+                            if phones:
+                                client_phone = phones[0]
                     
-                    # Пробуем получить номер телефона (если клиент его оставил)
-                    client_phone = None
-                    import re
-                    for msg in messages:
-                        phones = re.findall(r"\+?7[0-9]{10}|8[0-9]{10}", msg["text"])
-                        if phones:
-                            client_phone = phones[0]
-                            break
+                    # Получаем информацию об объявлении
+                    ad_info = thread.get("context", {}).get("ad", {})
+                    ad_id = str(ad_info.get("id", "")) if ad_info.get("id") else ""
+                    ad_title = ad_info.get("title", "")
+                    
+                    # Если нет названия объявления, пробуем получить через API items
+                    if ad_id and not ad_title:
+                        try:
+                            item_info = self._make_request("GET", f"/core/v1/items/{ad_id}")
+                            ad_title = item_info.get("title", "")
+                        except:
+                            pass
+                    
+                    # Получаем первое сообщение для комментария
+                    first_message = messages[0]["text"] if messages else ""
                     
                     chat = AvitoChat(
                         chat_id=str(thread["id"]),
                         client_name=thread.get("users", [{}])[0].get("name", "Неизвестно"),
                         client_phone=client_phone,
                         messages=messages,
-                        ad_id=str(thread.get("context", {}).get("ad", {}).get("id", "")),
-                        ad_title=thread.get("context", {}).get("ad", {}).get("title", ""),
-                        created_time=last_msg_time
+                        ad_id=ad_id,
+                        ad_title=ad_title,
+                        created_time=last_msg_time,
+                        first_message=first_message,
+                        message_count=len(messages)
                     )
                     chats.append(chat)
+                    print(f"  ✅ Чат {thread['id']}: {len(messages)} сообщений, клиент: {chat.client_name}")
                     
                 except Exception as e:
-                    print(f"⚠️ Ошибка при обработке чата {thread.get('id')}: {e}")
+                    print(f"  ⚠️ Ошибка при обработке чата {thread.get('id')}: {e}")
+                    import traceback
+                    traceback.print_exc()
                     continue
             
             return chats
