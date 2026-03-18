@@ -189,62 +189,71 @@ class AvitoAPIClient:
     def get_chats_since(self, since_time: datetime) -> List[AvitoChat]:
         """
         Получает чаты из Avito с указанного времени
-        Использует API: /messenger/v1/threads
+        Использует Messenger API v2/v3
+        Документация: https://api.avito.ru/docs/messenger/
         """
         try:
-            print(f"💬 Запрашиваем чаты с {since_time}")
+            if not self.user_id:
+                print("❌ ОШИБКА: AVITO_USER_ID не указан в конфигурации!")
+                print("   Добавьте AVITO_USER_ID в файл .env")
+                return []
+                
+            print(f"💬 Запрашиваем чаты для пользователя {self.user_id} с {since_time}")
             
-            # Получаем список чатов
+            # Получаем список чатов через V2 API
             params = {
                 "limit": 100,
-                "offset": 0
+                "offset": 0,
+                "unread_only": False,
+                "chat_types": "u2i"  # только чаты по объявлениям
             }
             
-            response = self._make_request("GET", "/messenger/v1/threads", params=params)
+            response = self._make_request(
+                "GET", 
+                f"/messenger/v2/accounts/{self.user_id}/chats",
+                params=params
+            )
             
             chats = []
-            threads_list = response.get("threads", [])
+            threads_list = response.get("chats", [])
             print(f"💬 Найдено чатов: {len(threads_list)}")
             
             for thread in threads_list:
                 try:
-                    # Получаем время последнего сообщения
-                    last_msg_time = datetime.fromisoformat(
-                        thread["last_message"]["created"].replace("Z", "+00:00")
-                    )
-                    
-                    if last_msg_time <= since_time:
+                    # Получаем время последнего обновления чата
+                    updated_time = None
+                    if thread.get("updated"):
+                        updated_time = datetime.fromisoformat(
+                            str(thread["updated"]).replace("Z", "+00:00")
+                        )
+                    elif thread.get("created"):
+                        updated_time = datetime.fromisoformat(
+                            str(thread["created"]).replace("Z", "+00:00")
+                        )
+                    else:
+                        # Если нет времени, пропускаем
                         continue
                     
-                    # Получаем детали чата
-                    chat_detail = self._make_request(
-                        "GET", 
-                        f"/messenger/v1/threads/{thread['id']}"
-                    )
+                    # Проверяем, что чат обновлялся после последней синхронизации
+                    if updated_time <= since_time:
+                        continue
                     
-                    # Извлекаем сообщения
-                    messages = []
-                    client_phone = None
+                    chat_id = thread["id"]
                     
-                    for msg in chat_detail.get("messages", []):
-                        text = msg.get("text", {}).get("markdown", "")
-                        direction = "incoming" if msg.get("direction") == "in" else "outgoing"
-                        
-                        messages.append({
-                            "text": text,
-                            "time": msg["created"],
-                            "direction": direction,
-                            "author": msg.get("author", {}).get("name", "Неизвестно")
-                        })
-                        
-                        # Пытаемся найти номер телефона в сообщениях клиента
-                        if direction == "incoming" and not client_phone:
-                            phones = re.findall(r"\+?7[0-9]{10}|8[0-9]{10}", text)
-                            if phones:
-                                client_phone = phones[0]
+                    # Получаем все сообщения чата через V3 API
+                    messages = self._get_chat_messages(chat_id)
                     
-                    # Получаем информацию об объявлении
-                    ad_info = thread.get("context", {}).get("ad", {})
+                    # Извлекаем информацию о пользователях
+                    users = thread.get("users", [])
+                    client_info = next((u for u in users if u.get("id") != int(self.user_id)), {})
+                    client_name = client_info.get("name", "Неизвестно")
+                    
+                    # Получаем информацию об объявлении из контекста
+                    context = thread.get("context", {})
+                    ad_info = {}
+                    if context.get("type") == "item":
+                        ad_info = context.get("value", {})
+                    
                     ad_id = str(ad_info.get("id", "")) if ad_info.get("id") else ""
                     ad_title = ad_info.get("title", "")
                     
@@ -256,22 +265,34 @@ class AvitoAPIClient:
                         except:
                             pass
                     
-                    # Получаем первое сообщение для комментария
-                    first_message = messages[0]["text"] if messages else ""
+                    # Пытаемся найти номер телефона в сообщениях
+                    client_phone = None
+                    first_message = ""
+                    
+                    for msg in messages:
+                        if not first_message:
+                            first_message = msg.get("text", "")
+                        
+                        # Ищем телефон в сообщениях от клиента
+                        if msg.get("direction") == "in":
+                            text = msg.get("text", "")
+                            phones = re.findall(r"\+?7[0-9]{10}|8[0-9]{10}", text)
+                            if phones and not client_phone:
+                                client_phone = phones[0]
                     
                     chat = AvitoChat(
-                        chat_id=str(thread["id"]),
-                        client_name=thread.get("users", [{}])[0].get("name", "Неизвестно"),
+                        chat_id=chat_id,
+                        client_name=client_name,
                         client_phone=client_phone,
                         messages=messages,
                         ad_id=ad_id,
                         ad_title=ad_title,
-                        created_time=last_msg_time,
+                        created_time=updated_time,
                         first_message=first_message,
                         message_count=len(messages)
                     )
                     chats.append(chat)
-                    print(f"  ✅ Чат {thread['id']}: {len(messages)} сообщений, клиент: {chat.client_name}")
+                    print(f"  ✅ Чат {chat_id}: {len(messages)} сообщений, клиент: {client_name}")
                     
                 except Exception as e:
                     print(f"  ⚠️ Ошибка при обработке чата {thread.get('id')}: {e}")
@@ -283,6 +304,64 @@ class AvitoAPIClient:
             
         except Exception as e:
             print(f"❌ Ошибка при получении чатов: {e}")
+            return []
+    
+    def _get_chat_messages(self, chat_id: str, limit: int = 100) -> List[dict]:
+        """
+        Получает все сообщения чата через V3 API
+        """
+        try:
+            messages = []
+            offset = 0
+            
+            while True:
+                params = {
+                    "limit": min(100, limit),
+                    "offset": offset
+                }
+                
+                response = self._make_request(
+                    "GET",
+                    f"/messenger/v3/accounts/{self.user_id}/chats/{chat_id}/messages/",
+                    params=params
+                )
+                
+                batch = response if isinstance(response, list) else response.get("messages", [])
+                messages.extend(batch)
+                
+                if len(batch) < 100:
+                    break
+                    
+                offset += 100
+                
+            # Преобразуем в удобный формат
+            formatted_messages = []
+            for msg in messages:
+                content = msg.get("content", {})
+                text = ""
+                if "text" in content:
+                    text = content["text"]
+                elif "image" in content:
+                    text = "[Изображение]"
+                
+                # Определяем направление сообщения
+                direction = "in"
+                if msg.get("author_id") == int(self.user_id):
+                    direction = "out"
+                
+                formatted_messages.append({
+                    "id": msg["id"],
+                    "text": text,
+                    "time": msg.get("created", ""),
+                    "direction": direction,
+                    "author_id": msg.get("author_id"),
+                    "is_read": msg.get("is_read", False)
+                })
+            
+            return formatted_messages
+            
+        except Exception as e:
+            print(f"⚠️ Ошибка при получении сообщений чата {chat_id}: {e}")
             return []
 
 # Для обратной совместимости
