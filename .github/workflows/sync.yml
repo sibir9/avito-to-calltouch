@@ -12,9 +12,10 @@ jobs:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
       with:
-        ssh-key: ${{ secrets.DEPLOY_KEY }}  # Добавляем SSH ключ для checkout
+        ssh-key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -48,18 +49,14 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        # Добавляем файл принудительно
+        # Добавляем файл
         git add -f data/last_sync.json
         
-        # Проверяем, есть ли изменения для коммита
+        # Проверяем изменения
         if git diff --cached --quiet; then
           echo "No changes to commit"
           exit 0
         else
           git commit -m "Update last sync time [skip ci]"
-          # Используем SSH URL для пуша
-          git remote set-url origin git@github.com:sibir9/avito-to-calltouch.git
-          git push origin main
+          git push
         fi
-      env:
-        GIT_SSH_COMMAND: "ssh -o StrictHostKeyChecking=no"  # Добавляем SSH настройки
