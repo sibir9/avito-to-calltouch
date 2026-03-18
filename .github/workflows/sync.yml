@@ -1,3 +1,57 @@
+name: Sync Avito to Calltouch
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        eval "$(ssh-agent -s)"
+        ssh-add ~/.ssh/id_ed25519
+        git remote set-url origin git@github.com:sibir9/avito-to-calltouch.git
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Create necessary directories
+      run: |
+        mkdir -p logs data
+    
+    - name: Run sync script
+      id: sync
+      env:
+        CALLTOUCH_ACCESS_TOKEN: ${{ secrets.CALLTOUCH_ACCESS_TOKEN }}
+        CALLTOUCH_SITE_ID: ${{ secrets.CALLTOUCH_SITE_ID }}
+      run: |
+        python main.py
+        echo "status=success" >> $GITHUB_OUTPUT
+    
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: sync-logs
+        path: logs/
+    
     - name: Send Telegram notification
       if: always()
       env:
@@ -63,4 +117,17 @@
         else
           echo "❌ Ошибка при отправке!"
           exit 1
+        fi
+    
+    - name: Commit and push state
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -f data/last_sync.json
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+          exit 0
+        else
+          git commit -m "Update last sync time [skip ci]"
+          git push origin main
         fi
