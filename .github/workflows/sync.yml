@@ -8,23 +8,20 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     
-    - name: Set up SSH key
+    - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
-        echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/deploy_key
-        chmod 600 ~/.ssh/deploy_key
+        echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan github.com >> ~/.ssh/known_hosts
-        chmod 644 ~/.ssh/known_hosts
         eval "$(ssh-agent -s)"
-        ssh-add ~/.ssh/deploy_key
-      shell: bash
+        ssh-add ~/.ssh/id_ed25519
+        git remote set-url origin git@github.com:sibir9/avito-to-calltouch.git
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -53,23 +50,15 @@ jobs:
         name: sync-logs
         path: logs/
     
-    - name: Commit and push state (if changed)
+    - name: Commit and push state
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        
-        # Меняем remote URL на SSH
-        git remote set-url origin git@github.com:sibir9/avito-to-calltouch.git
-        
-        # Добавляем файл
         git add -f data/last_sync.json
-        
-        # Проверяем изменения
         if git diff --cached --quiet; then
           echo "No changes to commit"
           exit 0
         else
           git commit -m "Update last sync time [skip ci]"
-          # Используем SSH агент который уже загрузил ключ
           git push origin main
         fi
