@@ -1,0 +1,308 @@
+{
+  "meta": {
+    "page": 1,
+    "per_page": 25
+  },
+  "resources": [
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950902908,
+      "price": 1000,
+      "status": "active",
+      "title": "Клапан печки Харвестер Форвардер Johndeer",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/klapan_pechki_harvester_forvarder_johndeer_7950902908"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950879251,
+      "price": 1000,
+      "status": "active",
+      "title": "Основание колонны форвардер Дир 1510 Е",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/osnovanie_kolonny_forvarder_dir_1510_e_7950879251"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950876137,
+      "price": 1000,
+      "status": "active",
+      "title": "Турбина Фовадер John Deer Dz108158",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/turbina_fovader_john_deer_dz108158_7950876137"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950869693,
+      "price": 1000,
+      "status": "active",
+      "title": "Шестерня Грибок в тандем Johndeer",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/shesternya_gribok_v_tandem_johndeer_7950869693"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950863739,
+      "price": 1000,
+      "status": "active",
+      "title": "Гидромотор хода Харвестер, Форвардер PG201538",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/gidromotor_hoda_harvester_forvarder_pg201538_7950863739"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950848908,
+      "price": 1000,
+      "status": "active",
+      "title": "Цилиндр рычаг Waratah 480 c F074420",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/tsilindr_rychag_waratah_480_c_f074420_7950848908"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950806664,
+      "price": 1000,
+      "status": "active",
+      "title": "Ступица бортовая F073048",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/stupitsa_bortovaya_f073048_7950806664"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 114,
+        "name": "Предложение услуг"
+      },
+      "id": 7950760420,
+      "price": 3500,
+      "status": "active",
+      "title": "Ремонт гидроцилиндров",
+      "url": "https://www.avito.ru/vologda/predlozheniya_uslug/remont_gidrotsilindrov_7950760420"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950711709,
+      "price": 1000,
+      "status": "active",
+      "title": "Форсунки RE529118 -Тир 3",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/forsunki_re529118_-tir_3_7950711709"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950710964,
+      "price": 1000,
+      "status": "active",
+      "title": "Цилиндр наклона головы Waratah 480 C F634639",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/tsilindr_naklona_golovy_waratah_480_c_f634639_7950710964"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950703172,
+      "price": 1000,
+      "status": "active",
+      "title": "Редуктор F063276 Харвестер John Deer",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/reduktor_f063276_harvester_john_deer_7950703172"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950688304,
+      "price": 1000,
+      "status": "active",
+      "title": "Джойстик манипулятора Форвардер. Харвестер",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/dzhoystik_manipulyatora_forvarder._harvester_7950688304"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950618207,
+      "price": 1000,
+      "status": "active",
+      "title": "Датчики длина, диаметр, пила дома Waratah 480 C",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/datchiki_dlina_diametr_pila_doma_waratah_480_c_7950618207"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950615897,
+      "price": 1000,
+      "status": "active",
+      "title": "Планетарный механизм F0064239 F68521",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/planetarnyy_mehanizm_f0064239_f68521_7950615897"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950613190,
+      "price": 1000,
+      "status": "active",
+      "title": "Модуль управления F687448",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/modul_upravleniya_f687448_7950613190"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950609332,
+      "price": 1000,
+      "status": "active",
+      "title": "Ролик натяжной Харвестер Форвардер",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/rolik_natyazhnoy_harvester_forvarder_7950609332"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950548964,
+      "price": 1000,
+      "status": "active",
+      "title": "Раздаточная коробка Lgs -03 Logst",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/razdatochnaya_korobka_lgs_-03_logst_7950548964"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950547904,
+      "price": 1000,
+      "status": "active",
+      "title": "Цилиндр поворота трактора F670099",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/tsilindr_povorota_traktora_f670099_7950547904"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950512762,
+      "price": 1000,
+      "status": "active",
+      "title": "Радиатор кондиционера F694578",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/radiator_konditsionera_f694578_7950512762"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950488397,
+      "price": 1000,
+      "status": "active",
+      "title": "Модуль Харвестер Ponsse",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/modul_harvester_ponsse_7950488397"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 114,
+        "name": "Предложение услуг"
+      },
+      "id": 7950467725,
+      "price": 1000,
+      "status": "active",
+      "title": "Выкуп тракторов деталей",
+      "url": "https://www.avito.ru/vologda/predlozheniya_uslug/vykup_traktorov_detaley_7950467725"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950413122,
+      "price": 1000,
+      "status": "active",
+      "title": "Модуль двигателя Re531808",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/modul_dvigatelya_re531808_7950413122"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950383789,
+      "price": 1000,
+      "status": "active",
+      "title": "Муфта сцепления. шестерня.F044774 F074554",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/mufta_stsepleniya._shesternya.f044774_f074554_7950383789"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 10,
+        "name": "Запчасти и аксессуары"
+      },
+      "id": 7950379942,
+      "price": 1000,
+      "status": "active",
+      "title": "Вентилятор отопителя F684541",
+      "url": "https://www.avito.ru/vologda/zapchasti_i_aksessuary/ventilyator_otopitelya_f684541_7950379942"
+    },
+    {
+      "address": "Вологодская обл., Вологда, Профсоюзная ул., 16",
+      "category": {
+        "id": 114,
+        "name": "Предложение услуг"
+      },
+      "id": 7950377918,
+      "price": 8000,
+      "status": "active",
+      "title": "Изготовление гидроцилиндров",
+      "url": "https://www.avito.ru/vologda/predlozheniya_uslug/izgotovlenie_gidrotsilindrov_7950377918"
+    }
+  ]
+}
