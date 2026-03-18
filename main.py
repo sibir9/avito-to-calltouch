@@ -109,7 +109,7 @@ def process_chats(chats_state_manager, avito, requests_client):
                     userName=chat.client_name,
                     comment=f"Чат с Avito\nОбъявление: {chat.ad_title}\nСообщений: {chat.message_count}\nПервое сообщение: {chat.first_message}",
                     source="avito.ru",
-                    medium="organic",
+                    medium="marketplace",
                     campaign=chat.ad_title or "Avito",
                     content=chat.ad_id,
                     customFields=[
