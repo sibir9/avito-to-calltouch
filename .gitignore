@@ -15,6 +15,7 @@ logs/*
 
 # Data - но разрешаем .gitkeep
 data/*
+!data/last_sync.json
 !data/.gitkeep
 
 # IDE
