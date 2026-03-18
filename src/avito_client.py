@@ -23,7 +23,7 @@ class AvitoAPIClient:
     def _get_access_token(self) -> str:
         """
         Получает access token для API Avito
-        Токен действителен 6 часов
+        Токен действителен 24 часа (86400 секунд)
         """
         if self.access_token and self.token_expires > datetime.now():
             return self.access_token
@@ -51,11 +51,12 @@ class AvitoAPIClient:
         if response.status_code == 200:
             token_data = response.json()
             self.access_token = token_data["access_token"]
-            # Токен действителен 6 часов (21600 секунд)
+            # Токен действителен 24 часа (86400 секунд)
             self.token_expires = datetime.now() + timedelta(seconds=token_data["expires_in"] - 60)
+            print(f"✅ Получен новый токен, действителен до: {self.token_expires}")
             return self.access_token
         else:
-            raise Exception(f"Ошибка получения токена Avito: {response.text}")
+            raise Exception(f"Ошибка получения токена Avito: {response.status_code} - {response.text}")
     
     def _make_request(self, method: str, endpoint: str, params: Dict = None, data: Dict = None) -> Dict:
         """
@@ -70,19 +71,28 @@ class AvitoAPIClient:
         
         url = f"https://api.avito.ru{endpoint}"
         
+        print(f"Запрос к: {url}")
+        
         response = requests.request(
             method=method,
             url=url,
             headers=headers,
             params=params,
-            json=data
+            json=data,
+            timeout=30
         )
         
         if response.status_code == 200:
             return response.json()
         elif response.status_code == 429:
             # Превышен лимит запросов
+            print("⚠️ Превышен лимит запросов, ждем 60 секунд...")
             time.sleep(60)
+            return self._make_request(method, endpoint, params, data)
+        elif response.status_code == 401:
+            print("❌ Ошибка авторизации, пробуем обновить токен...")
+            self.access_token = None
+            self.token_expires = None
             return self._make_request(method, endpoint, params, data)
         else:
             raise Exception(f"Ошибка API Avito: {response.status_code} - {response.text}")
@@ -90,47 +100,56 @@ class AvitoAPIClient:
     def get_calls_since(self, since_time: datetime) -> List[AvitoCall]:
         """
         Получает звонки из Avito с указанного времени
-        Использует API: /api/1/calls/
+        Использует API статистики: /core/v1/stats/items/
         """
         try:
-            # Форматируем дату для API
-            date_from = since_time.strftime("%Y-%m-%d")
+            # Сначала получим информацию о пользователе
+            user_info = self._make_request("GET", "/core/v1/accounts/self")
+            print(f"👤 Аккаунт: {user_info.get('name', 'Неизвестно')}")
             
-            # Получаем список звонков
-            params = {
-                "date_from": date_from,
-                "page": 1,
-                "per_page": 100
-            }
-            
-            response = self._make_request("GET", "/api/1/calls/", params=params)
+            # Получим список объявлений
+            items = self._make_request("GET", "/core/v1/items", params={"limit": 100})
             
             calls = []
-            for item in response.get("calls", []):
-                # Парсим время звонка
-                call_time = datetime.fromisoformat(item["call_time"].replace("Z", "+00:00"))
-                
-                # Проверяем, что звонок новее since_time
-                if call_time <= since_time:
+            
+            # Форматируем даты для запроса статистики
+            date_from = since_time.strftime("%Y-%m-%d")
+            date_to = datetime.now().strftime("%Y-%m-%d")
+            
+            # Получаем статистику по каждому объявлению
+            items_list = items.get("items", []) or items.get("resources", [])
+            print(f"📦 Найдено объявлений: {len(items_list)}")
+            
+            for item in items_list:
+                item_id = item.get("id")
+                if not item_id:
                     continue
-                
-                call = AvitoCall(
-                    id=str(item["id"]),
-                    client_phone=item["caller_number"],
-                    your_phone=item["called_number"],
-                    call_time=call_time,
-                    duration=item["duration"],
-                    status="successful" if item["is_successful"] else "unsuccessful",
-                    ad_id=str(item.get("ad_id", "")),
-                    ad_title=item.get("ad_title", ""),
-                    record_url=item.get("record_url")
-                )
-                calls.append(call)
+                    
+                # Получаем статистику по объявлению
+                try:
+                    stats = self._make_request(
+                        "GET", 
+                        f"/core/v1/stats/items/{item_id}",
+                        params={
+                            "date_from": date_from,
+                            "date_to": date_to
+                        }
+                    )
+                    
+                    # В статистике ищем данные о звонках
+                    # Структура может отличаться, нужно посмотреть реальный ответ
+                    print(f"📊 Статистика для объявления {item_id}: {list(stats.keys())}")
+                    
+                    # TODO: Обработать статистику согласно реальной структуре ответа
+                    
+                except Exception as e:
+                    print(f"⚠️ Ошибка при получении статистики для {item_id}: {e}")
+                    continue
             
             return calls
             
         except Exception as e:
-            print(f"Ошибка при получении звонков: {e}")
+            print(f"❌ Ошибка при получении звонков: {e}")
             return []
     
     def get_chats_since(self, since_time: datetime) -> List[AvitoChat]:
@@ -139,66 +158,67 @@ class AvitoAPIClient:
         Использует API: /messenger/v1/threads
         """
         try:
-            # Получаем список чатов
-            params = {
-                "limit": 100,
-                "offset": 0
-            }
-            
-            response = self._make_request("GET", "/messenger/v1/threads", params=params)
+            # Проверяем доступ к мессенджеру
+            threads = self._make_request("GET", "/messenger/v1/threads", params={"limit": 100})
             
             chats = []
-            for thread in response.get("threads", []):
-                # Получаем время последнего сообщения
-                last_msg_time = datetime.fromisoformat(
-                    thread["last_message"]["created"].replace("Z", "+00:00")
-                )
-                
-                if last_msg_time <= since_time:
-                    continue
-                
-                # Получаем детали чата
-                chat_detail = self._make_request(
-                    "GET", 
-                    f"/messenger/v1/threads/{thread['id']}"
-                )
-                
-                # Извлекаем сообщения
-                messages = []
-                for msg in chat_detail.get("messages", []):
-                    messages.append({
-                        "text": msg.get("text", {}).get("markdown", ""),
-                        "time": msg["created"],
-                        "direction": "incoming" if msg["direction"] == "in" else "outgoing",
-                        "author": msg.get("author", {}).get("name", "Неизвестно")
-                    })
-                
-                # Пробуем получить номер телефона (если клиент его оставил)
-                client_phone = None
-                for msg in messages:
-                    if "8" in msg["text"] or "+7" in msg["text"]:
-                        # Простой поиск номера в тексте
-                        import re
+            threads_list = threads.get("threads", [])
+            print(f"💬 Найдено чатов: {len(threads_list)}")
+            
+            for thread in threads_list:
+                try:
+                    # Получаем время последнего сообщения
+                    last_msg_time = datetime.fromisoformat(
+                        thread["last_message"]["created"].replace("Z", "+00:00")
+                    )
+                    
+                    if last_msg_time <= since_time:
+                        continue
+                    
+                    # Получаем детали чата
+                    chat_detail = self._make_request(
+                        "GET", 
+                        f"/messenger/v1/threads/{thread['id']}"
+                    )
+                    
+                    # Извлекаем сообщения
+                    messages = []
+                    for msg in chat_detail.get("messages", []):
+                        messages.append({
+                            "text": msg.get("text", {}).get("markdown", ""),
+                            "time": msg["created"],
+                            "direction": "incoming" if msg.get("direction") == "in" else "outgoing",
+                            "author": msg.get("author", {}).get("name", "Неизвестно")
+                        })
+                    
+                    # Пробуем получить номер телефона (если клиент его оставил)
+                    client_phone = None
+                    import re
+                    for msg in messages:
                         phones = re.findall(r"\+?7[0-9]{10}|8[0-9]{10}", msg["text"])
                         if phones:
                             client_phone = phones[0]
                             break
-                
-                chat = AvitoChat(
-                    chat_id=str(thread["id"]),
-                    client_name=thread.get("users", [{}])[0].get("name", "Неизвестно"),
-                    client_phone=client_phone,
-                    messages=messages,
-                    ad_id=str(thread.get("context", {}).get("ad", {}).get("id", "")),
-                    ad_title=thread.get("context", {}).get("ad", {}).get("title", ""),
-                    created_time=last_msg_time
-                )
-                chats.append(chat)
+                    
+                    chat = AvitoChat(
+                        chat_id=str(thread["id"]),
+                        client_name=thread.get("users", [{}])[0].get("name", "Неизвестно"),
+                        client_phone=client_phone,
+                        messages=messages,
+                        ad_id=str(thread.get("context", {}).get("ad", {}).get("id", "")),
+                        ad_title=thread.get("context", {}).get("ad", {}).get("title", ""),
+                        created_time=last_msg_time
+                    )
+                    chats.append(chat)
+                    
+                except Exception as e:
+                    print(f"⚠️ Ошибка при обработке чата {thread.get('id')}: {e}")
+                    continue
             
             return chats
             
         except Exception as e:
-            print(f"Ошибка при получении чатов: {e}")
+            print(f"❌ Ошибка при получении чатов: {e}")
             return []
 
 # Для обратной совместимости
