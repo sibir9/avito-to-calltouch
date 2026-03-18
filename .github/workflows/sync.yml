@@ -1,0 +1,49 @@
+name: Sync Avito to Calltouch
+
+on:
+  schedule:
+    # Запускается каждый час
+    - cron: '0 * * * *'
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Create necessary directories
+      run: |
+        mkdir -p logs data
+    
+    - name: Run sync script
+      env:
+        CALLTOUCH_ACCESS_TOKEN: ${{ secrets.CALLTOUCH_ACCESS_TOKEN }}
+        CALLTOUCH_SITE_ID: ${{ secrets.CALLTOUCH_SITE_ID }}
+      run: |
+        python main.py
+    
+    - name: Upload logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: sync-logs
+        path: logs/
+    
+    - name: Commit and push state
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/last_sync.json
+        git diff --quiet && git diff --staged --quiet || git commit -m "Update last sync time"
+        git push
