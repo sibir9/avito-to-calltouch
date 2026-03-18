@@ -9,13 +9,12 @@ venv/
 .env
 .venv
 
-# Logs
-logs/
-*.log
+# Logs - но разрешаем .gitkeep
+logs/*
+!logs/.gitkeep
 
-# Data
-data/
-*.json
+# Data - но разрешаем .gitkeep
+data/*
 !data/.gitkeep
 
 # IDE
