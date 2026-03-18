@@ -8,14 +8,12 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true  # Разрешаем использовать Node.js 20 пока
     
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4.2.2  # Конкретная версия
     
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v5.4.0  # Конкретная версия
       with:
         python-version: '3.10'
     
@@ -36,7 +34,7 @@ jobs:
     
     - name: Upload logs
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4.6.0  # Конкретная версия
       with:
         name: sync-logs
         path: logs/
@@ -46,7 +44,6 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add data/last_sync.json
-        # Проверяем, есть ли изменения перед коммитом
         if ! git diff --quiet && ! git diff --staged --quiet; then
           git commit -m "Update last sync time"
           git push
