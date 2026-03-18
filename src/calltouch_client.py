@@ -36,8 +36,8 @@ class CalltouchClient:
                 "status": call.status,
                 "customSources": {
                     "source": "avito.ru",
-                    "medium": "call",
-                    "campaign": "Органические звонки"
+                    "medium": "marketplace",
+                    "campaign": "Звонки с Авито"
                 }
             }
             
