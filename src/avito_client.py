@@ -10,7 +10,8 @@ import base64
 class AvitoAPIClient:
     """
     Клиент для работы с официальным API Avito
-    Документация: https://api.avito.ru/docs
+    Использует CallTracking API для получения звонков
+    Документация: https://api.avito.ru/docs/calltracking/
     """
     
     def __init__(self):
@@ -100,57 +101,85 @@ class AvitoAPIClient:
     def get_calls_since(self, since_time: datetime) -> List[AvitoCall]:
         """
         Получает звонки из Avito с указанного времени
-        Использует API статистики: /core/v1/stats/items/
+        Использует CallTracking API: /calltracking/v1/getCalls/
         """
         try:
-            # Сначала получим информацию о пользователе
-            user_info = self._make_request("GET", "/core/v1/accounts/self")
-            print(f"👤 Аккаунт: {user_info.get('name', 'Неизвестно')}")
+            # Форматируем время в RFC3339 формат
+            date_from = since_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+            date_to = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
             
-            # Получим список объявлений
-            items = self._make_request("GET", "/core/v1/items", params={"limit": 100})
+            print(f"📞 Запрашиваем звонки с {date_from} по {date_to}")
+            
+            # Подготавливаем запрос
+            payload = {
+                "dateTimeFrom": date_from,
+                "dateTimeTo": date_to,
+                "limit": 100,
+                "offset": 0
+            }
+            
+            # Получаем звонки
+            response = self._make_request(
+                "POST", 
+                "/calltracking/v1/getCalls/",
+                data=payload
+            )
             
             calls = []
             
-            # Форматируем даты для запроса статистики
-            date_from = since_time.strftime("%Y-%m-%d")
-            date_to = datetime.now().strftime("%Y-%m-%d")
+            # Обрабатываем ответ
+            if "calls" in response:
+                for item in response["calls"]:
+                    try:
+                        # Парсим время звонка
+                        call_time = datetime.fromisoformat(item["callTime"].replace("Z", "+00:00"))
+                        
+                        # Преобразуем в нашу модель
+                        call = AvitoCall(
+                            id=str(item["callId"]),
+                            client_phone=item["buyerPhone"],
+                            your_phone=item["virtualPhone"],
+                            call_time=call_time,
+                            duration=item["talkDuration"],
+                            waitingTime=item.get("waitingDuration", 0),
+                            status="successful" if item.get("talkDuration", 0) > 0 else "unsuccessful",
+                            ad_id=str(item.get("itemId", "")),
+                            ad_title="",  # Название объявления нужно получать отдельно
+                            record_url=f"https://api.avito.ru/calltracking/v1/getRecordByCallId/?callId={item['callId']}"
+                        )
+                        calls.append(call)
+                        print(f"  ✅ Звонок {item['callId']}: {call_time} ({item.get('talkDuration', 0)} сек)")
+                        
+                    except Exception as e:
+                        print(f"  ⚠️ Ошибка при обработке звонка {item.get('callId')}: {e}")
+                        continue
             
-            # Получаем статистику по каждому объявлению
-            items_list = items.get("items", []) or items.get("resources", [])
-            print(f"📦 Найдено объявлений: {len(items_list)}")
+            # Если есть ошибка в ответе
+            if "error" in response and response["error"]:
+                print(f"⚠️ Ошибка от API: {response['error']}")
             
-            for item in items_list:
-                item_id = item.get("id")
-                if not item_id:
-                    continue
-                    
-                # Получаем статистику по объявлению
-                try:
-                    stats = self._make_request(
-                        "GET", 
-                        f"/core/v1/stats/items/{item_id}",
-                        params={
-                            "date_from": date_from,
-                            "date_to": date_to
-                        }
-                    )
-                    
-                    # В статистике ищем данные о звонках
-                    # Структура может отличаться, нужно посмотреть реальный ответ
-                    print(f"📊 Статистика для объявления {item_id}: {list(stats.keys())}")
-                    
-                    # TODO: Обработать статистику согласно реальной структуре ответа
-                    
-                except Exception as e:
-                    print(f"⚠️ Ошибка при получении статистики для {item_id}: {e}")
-                    continue
-            
+            print(f"📊 Получено звонков: {len(calls)}")
             return calls
             
         except Exception as e:
             print(f"❌ Ошибка при получении звонков: {e}")
             return []
+    
+    def get_call_details(self, call_id: int) -> Optional[Dict]:
+        """
+        Получает детальную информацию о звонке
+        """
+        try:
+            payload = {"callId": call_id}
+            response = self._make_request(
+                "POST",
+                "/calltracking/v1/getCallById/",
+                data=payload
+            )
+            return response.get("call")
+        except Exception as e:
+            print(f"❌ Ошибка при получении деталей звонка {call_id}: {e}")
+            return None
     
     def get_chats_since(self, since_time: datetime) -> List[AvitoChat]:
         """
