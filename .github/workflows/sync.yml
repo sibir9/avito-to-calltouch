@@ -2,15 +2,14 @@ name: Sync Avito to Calltouch
 
 on:
   schedule:
-    # Запускается каждый час
     - cron: '0 * * * *'
-  workflow_dispatch:  # Позволяет запускать вручную
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    env:  # <--- ДОБАВЛЕНО: принудительное включение Node.js 24
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true  # Разрешаем использовать Node.js 20 пока
     
     steps:
     - uses: actions/checkout@v4
@@ -48,4 +47,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git add data/last_sync.json
         # Проверяем, есть ли изменения перед коммитом
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update last sync time" && git push)
+        if ! git diff --quiet && ! git diff --staged --quiet; then
+          git commit -m "Update last sync time"
+          git push
+        fi
