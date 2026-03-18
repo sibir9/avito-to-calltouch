@@ -128,30 +128,35 @@ class AvitoAPIClient:
             calls = []
             
             # Обрабатываем ответ
+                        # Обрабатываем ответ
             if "calls" in response:
                 for item in response["calls"]:
                     try:
                         # Парсим время звонка
                         call_time = datetime.fromisoformat(item["callTime"].replace("Z", "+00:00"))
                         
+                        print(f"  📞 Обработка звонка {item.get('callId')}: buyer={item.get('buyerPhone')}, duration={item.get('talkDuration')}")
+                        
                         # Преобразуем в нашу модель
                         call = AvitoCall(
                             id=str(item["callId"]),
-                            client_phone=item["buyerPhone"],
-                            your_phone=item["virtualPhone"],
+                            client_phone=item.get("buyerPhone", ""),
+                            your_phone=item.get("virtualPhone", ""),
                             call_time=call_time,
-                            duration=item["talkDuration"],
-                            waitingTime=item.get("waitingDuration", 0),
+                            duration=item.get("talkDuration", 0),
+                            waitingTime=item.get("waitingDuration", 0),  # Теперь поле есть в модели
                             status="successful" if item.get("talkDuration", 0) > 0 else "unsuccessful",
-                            ad_id=str(item.get("itemId", "")),
+                            ad_id=str(item.get("itemId", "")) if item.get("itemId") else None,
                             ad_title="",  # Название объявления нужно получать отдельно
-                            record_url=f"https://api.avito.ru/calltracking/v1/getRecordByCallId/?callId={item['callId']}"
+                            record_url=f"https://api.avito.ru/calltracking/v1/getRecordByCallId/?callId={item['callId']}" if item.get("callId") else None
                         )
                         calls.append(call)
-                        print(f"  ✅ Звонок {item['callId']}: {call_time} ({item.get('talkDuration', 0)} сек)")
+                        print(f"    ✅ Добавлен звонок {call.id}")
                         
                     except Exception as e:
-                        print(f"  ⚠️ Ошибка при обработке звонка {item.get('callId')}: {e}")
+                        print(f"    ⚠️ Ошибка при обработке звонка {item.get('callId')}: {e}")
+                        import traceback
+                        traceback.print_exc()
                         continue
             
             # Если есть ошибка в ответе
