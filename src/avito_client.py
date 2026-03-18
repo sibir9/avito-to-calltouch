@@ -187,125 +187,125 @@ class AvitoAPIClient:
             return None
     
     def get_chats_since(self, since_time: datetime) -> List[AvitoChat]:
-    """
-    Получает чаты из Avito с указанного времени
-    Использует Messenger API v2: /messenger/v2/accounts/{user_id}/chats
-    """
-    try:
-        if not self.user_id:
-            print("❌ ОШИБКА: AVITO_USER_ID не указан в конфигурации!")
-            print("   Добавьте AVITO_USER_ID в файл .env")
-            return []
+        """
+        Получает чаты из Avito с указанного времени
+        Использует Messenger API v2: /messenger/v2/accounts/{user_id}/chats
+        """
+        try:
+            if not self.user_id:
+                print("❌ ОШИБКА: AVITO_USER_ID не указан в конфигурации!")
+                print("   Добавьте AVITO_USER_ID в файл .env")
+                return []
+                
+            print(f"💬 Запрашиваем чаты для пользователя {self.user_id} с {since_time}")
             
-        print(f"💬 Запрашиваем чаты для пользователя {self.user_id} с {since_time}")
-        
-        # Получаем список чатов через V2 API
-        params = {
-            "limit": 100,
-            "offset": 0
-        }
-        
-        response = self._make_request(
-            "GET", 
-            f"/messenger/v2/accounts/{self.user_id}/chats",
-            params=params
-        )
-        
-        chats = []
-        threads_list = response.get("chats", [])
-        print(f"💬 Найдено чатов: {len(threads_list)}")
-        
-        for thread in threads_list:
-            try:
-                # Получаем время последнего обновления чата
-                # Avito возвращает Unix timestamp (число секунд)
-                if thread.get("updated"):
-                    # Если это число (timestamp)
-                    if isinstance(thread["updated"], (int, float)) or str(thread["updated"]).isdigit():
-                        updated_time = datetime.fromtimestamp(int(thread["updated"]))
+            # Получаем список чатов через V2 API
+            params = {
+                "limit": 100,
+                "offset": 0
+            }
+            
+            response = self._make_request(
+                "GET", 
+                f"/messenger/v2/accounts/{self.user_id}/chats",
+                params=params
+            )
+            
+            chats = []
+            threads_list = response.get("chats", [])
+            print(f"💬 Найдено чатов: {len(threads_list)}")
+            
+            for thread in threads_list:
+                try:
+                    # Получаем время последнего обновления чата
+                    # Avito возвращает Unix timestamp (число секунд)
+                    if thread.get("updated"):
+                        # Если это число (timestamp)
+                        if isinstance(thread["updated"], (int, float)) or str(thread["updated"]).isdigit():
+                            updated_time = datetime.fromtimestamp(int(thread["updated"]))
+                        else:
+                            # Если это строка ISO формата
+                            updated_time = datetime.fromisoformat(str(thread["updated"]).replace("Z", "+00:00"))
+                    elif thread.get("created"):
+                        if isinstance(thread["created"], (int, float)) or str(thread["created"]).isdigit():
+                            updated_time = datetime.fromtimestamp(int(thread["created"]))
+                        else:
+                            updated_time = datetime.fromisoformat(str(thread["created"]).replace("Z", "+00:00"))
                     else:
-                        # Если это строка ISO формата
-                        updated_time = datetime.fromisoformat(str(thread["updated"]).replace("Z", "+00:00"))
-                elif thread.get("created"):
-                    if isinstance(thread["created"], (int, float)) or str(thread["created"]).isdigit():
-                        updated_time = datetime.fromtimestamp(int(thread["created"]))
-                    else:
-                        updated_time = datetime.fromisoformat(str(thread["created"]).replace("Z", "+00:00"))
-                else:
-                    # Если нет времени, пропускаем
-                    continue
-                
-                # Проверяем, что чат обновлялся после последней синхронизации
-                if updated_time <= since_time:
-                    continue
-                
-                chat_id = thread["id"]
-                
-                # Получаем все сообщения чата
-                messages = self._get_chat_messages(chat_id)
-                
-                # Извлекаем информацию о пользователях
-                users = thread.get("users", [])
-                client_info = next((u for u in users if u.get("id") != int(self.user_id)), {})
-                client_name = client_info.get("name", "Неизвестно")
-                
-                # Получаем информацию об объявлении из контекста
-                context = thread.get("context", {})
-                ad_info = {}
-                if context.get("type") == "item":
-                    ad_info = context.get("value", {})
-                
-                ad_id = str(ad_info.get("id", "")) if ad_info.get("id") else ""
-                ad_title = ad_info.get("title", "")
-                
-                # Если нет названия объявления, пробуем получить через API items
-                if ad_id and not ad_title:
-                    try:
-                        item_info = self._make_request("GET", f"/core/v1/items/{ad_id}")
-                        ad_title = item_info.get("title", "")
-                    except:
-                        pass
-                
-                # Пытаемся найти номер телефона в сообщениях
-                client_phone = None
-                first_message = ""
-                
-                for msg in messages:
-                    if not first_message:
-                        first_message = msg.get("text", "")
+                        # Если нет времени, пропускаем
+                        continue
                     
-                    # Ищем телефон в сообщениях от клиента
-                    if msg.get("direction") == "in":
-                        text = msg.get("text", "")
-                        phones = re.findall(r"\+?7[0-9]{10}|8[0-9]{10}", text)
-                        if phones and not client_phone:
-                            client_phone = phones[0]
-                
-                chat = AvitoChat(
-                    chat_id=chat_id,
-                    client_name=client_name,
-                    client_phone=client_phone,
-                    messages=messages,
-                    ad_id=ad_id,
-                    ad_title=ad_title,
-                    created_time=updated_time,
-                    first_message=first_message,
-                    message_count=len(messages)
-                )
-                chats.append(chat)
-                print(f"  ✅ Чат {chat_id}: {len(messages)} сообщений, клиент: {client_name}, время: {updated_time}")
-                
-            except Exception as e:
-                print(f"  ⚠️ Ошибка при обработке чата {thread.get('id')}: {e}")
-                import traceback
-                traceback.print_exc()
-                continue
-        
-        return chats
-        
-    except Exception as e:
-        print(f"❌ Ошибка при получении чатов: {e}")
-        return []
+                    # Проверяем, что чат обновлялся после последней синхронизации
+                    if updated_time <= since_time:
+                        continue
+                    
+                    chat_id = thread["id"]
+                    
+                    # Получаем все сообщения чата
+                    messages = self._get_chat_messages(chat_id)
+                    
+                    # Извлекаем информацию о пользователях
+                    users = thread.get("users", [])
+                    client_info = next((u for u in users if u.get("id") != int(self.user_id)), {})
+                    client_name = client_info.get("name", "Неизвестно")
+                    
+                    # Получаем информацию об объявлении из контекста
+                    context = thread.get("context", {})
+                    ad_info = {}
+                    if context.get("type") == "item":
+                        ad_info = context.get("value", {})
+                    
+                    ad_id = str(ad_info.get("id", "")) if ad_info.get("id") else ""
+                    ad_title = ad_info.get("title", "")
+                    
+                    # Если нет названия объявления, пробуем получить через API items
+                    if ad_id and not ad_title:
+                        try:
+                            item_info = self._make_request("GET", f"/core/v1/items/{ad_id}")
+                            ad_title = item_info.get("title", "")
+                        except:
+                            pass
+                    
+                    # Пытаемся найти номер телефона в сообщениях
+                    client_phone = None
+                    first_message = ""
+                    
+                    for msg in messages:
+                        if not first_message:
+                            first_message = msg.get("text", "")
+                        
+                        # Ищем телефон в сообщениях от клиента
+                        if msg.get("direction") == "in":
+                            text = msg.get("text", "")
+                            phones = re.findall(r"\+?7[0-9]{10}|8[0-9]{10}", text)
+                            if phones and not client_phone:
+                                client_phone = phones[0]
+                    
+                    chat = AvitoChat(
+                        chat_id=chat_id,
+                        client_name=client_name,
+                        client_phone=client_phone,
+                        messages=messages,
+                        ad_id=ad_id,
+                        ad_title=ad_title,
+                        created_time=updated_time,
+                        first_message=first_message,
+                        message_count=len(messages)
+                    )
+                    chats.append(chat)
+                    print(f"  ✅ Чат {chat_id}: {len(messages)} сообщений, клиент: {client_name}, время: {updated_time}")
+                    
+                except Exception as e:
+                    print(f"  ⚠️ Ошибка при обработке чата {thread.get('id')}: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    continue
+            
+            return chats
+            
+        except Exception as e:
+            print(f"❌ Ошибка при получении чатов: {e}")
+            return []
     
     def _get_chat_messages(self, chat_id: str, limit: int = 100) -> List[dict]:
         """
