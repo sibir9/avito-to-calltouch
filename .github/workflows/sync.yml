@@ -14,9 +14,17 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        ssh-key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-        ssh-strict: false  # Добавляем для отладки
+    
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
+        eval "$(ssh-agent -s)"
+        ssh-add ~/.ssh/deploy_key
+      shell: bash
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -62,6 +70,6 @@ jobs:
           exit 0
         else
           git commit -m "Update last sync time [skip ci]"
-          # Пробуем пуш с явным указанием SSH
-          GIT_SSH_COMMAND="ssh -v -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key" git push origin main
+          # Используем SSH агент который уже загрузил ключ
+          git push origin main
         fi
