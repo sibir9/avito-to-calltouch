@@ -18,6 +18,7 @@ data/*
 !data/last_sync.json
 !data/.gitkeep
 
+
 # IDE
 .vscode/
 .idea/
