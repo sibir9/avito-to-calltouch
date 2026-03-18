@@ -8,14 +8,14 @@ import time
 class CalltouchRequestsClient:
     """
     Клиент для отправки заявок в Calltouch через API
-    Документация: https://api.calltouch.ru/lead-service/v1/api/request/import
+    Документация: https://api.calltouch.ru/lead-service/v1/api/request/create
     """
     
     def __init__(self):
         self.token = Config.CALLTOUCH_ACCESS_TOKEN
         self.site_id = Config.CALLTOUCH_SITE_ID
-        # ПРАВИЛЬНЫЙ URL для заявок
-        self.url = "https://api.calltouch.ru/lead-service/v1/api/request/import"
+        # ПРАВИЛЬНЫЙ URL для создания заявок
+        self.url = "https://api.calltouch.ru/lead-service/v1/api/request/create"
         self.headers = {
             "Access-Token": self.token,
             "SiteId": self.site_id,
@@ -34,23 +34,34 @@ class CalltouchRequestsClient:
         
         print(f"📤 Подготовлено заявок: {len(requests_data)}")
         
-        # Преобразуем в формат для API
+        # Преобразуем в формат для API согласно документации
         requests_list = []
         for req in requests_data:
             req_dict = {
-                "requestId": req.requestId,
-                "phone": req.phone,
-                "userName": req.userName,
-                "comment": req.comment,
-                "source": req.source,
-                "medium": req.medium
+                "requestNumber": req.requestId,  # Важно: используется requestNumber, а не requestId
+                "phoneNumber": req.phone if req.phone else "",
+                "fio": req.userName if req.userName else "",
+                "comment": {
+                    "text": req.comment
+                },
+                "addTags": [
+                    {"tag": "Avito"},
+                    {"tag": "Чат"}
+                ]
             }
             
-            # Добавляем необязательные поля, если они есть
-            if req.campaign:
-                req_dict["campaign"] = req.campaign
-            if req.content:
-                req_dict["content"] = req.content
+            # Добавляем источник
+            if req.source:
+                if "customSources" not in req_dict:
+                    req_dict["customSources"] = {}
+                req_dict["customSources"]["source"] = req.source
+                req_dict["customSources"]["medium"] = req.medium
+                if req.campaign:
+                    req_dict["customSources"]["campaign"] = req.campaign
+                if req.content:
+                    req_dict["customSources"]["content"] = req.content
+            
+            # Добавляем пользовательские поля
             if req.customFields:
                 req_dict["customFields"] = req.customFields
             
@@ -63,7 +74,7 @@ class CalltouchRequestsClient:
             payload = {"requests": batch}
             
             print(f"\n📦 Отправка пачки {i//100 + 1} из {(len(requests_list)-1)//100 + 1}")
-            print(f"   JSON: {json.dumps(payload, indent=2, ensure_ascii=False)[:200]}...")
+            print(f"   Кол-во заявок: {len(batch)}")
             
             try:
                 response = requests.post(
@@ -77,7 +88,7 @@ class CalltouchRequestsClient:
                 
                 if response.status_code == 200:
                     result = response.json()
-                    print(f"   ✅ Успешно: {result}")
+                    print(f"   ✅ Успешно: {json.dumps(result, indent=2, ensure_ascii=False)[:200]}")
                     results.append({
                         "batch": i//100 + 1,
                         "success": True,
