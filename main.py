@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-Главный скрипт для синхронизации звонков из Avito в Calltouch
-Запускается автоматически через GitHub Actions
-"""
+
 
 import logging
 from datetime import datetime
@@ -34,13 +31,15 @@ def main():
         calltouch = CalltouchClient()
         
         # Получаем время последней синхронизации
-        last_sync = state_manager.get_last_sync()
-        if not last_sync:
+        
+        last_sync = datetime(2026, 2, 1)  # берем с 1 февраля
+        #last_sync = state_manager.get_last_sync()
+        #if not last_sync:
             # Если синхронизации не было, берем последние 24 часа
-            last_sync = datetime.now().replace(hour=0, minute=0, second=0)
-            logger.info(f"Первая синхронизация, берем данные с {last_sync}")
-        else:
-            logger.info(f"Последняя синхронизация: {last_sync}")
+            #last_sync = datetime.now().replace(hour=0, minute=0, second=0)
+            #logger.info(f"Первая синхронизация, берем данные с {last_sync}")
+        #else:
+            #logger.info(f"Последняя синхронизация: {last_sync}")
         
         # Получаем новые звонки из Avito
         logger.info("Получаем звонки из Avito...")
