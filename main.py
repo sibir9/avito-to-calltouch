@@ -55,7 +55,7 @@ def process_calls(state_manager, avito, calltouch):
                     addTags=[{"tag": "Avito"}, {"tag": "Звонок с площадки"}],
                     customSources={
                         "source": "avito.ru",
-                        "medium": "organic",
+                        "medium": "marketplace",
                         "campaign": call.ad_title or "Avito",
                         "content": call.ad_id or ""
                     }
@@ -79,13 +79,12 @@ def process_chats(chats_state_manager, avito, requests_client):
     logger.info("Обработка чатов")
     
     # Получаем время последней синхронизации чатов
-    last_sync = datetime(2026, 2, 1) 
-    #last_sync = chats_state_manager.get_last_sync()
-    #if not last_sync:
-        #last_sync = datetime.now().replace(hour=0, minute=0, second=0)
-        #logger.info(f"Первая синхронизация чатов, берем данные с {last_sync}")
-   # else:
-        #logger.info(f"Последняя синхронизация чатов: {last_sync}")
+    last_sync = chats_state_manager.get_last_sync()
+    if not last_sync:
+        last_sync = datetime.now().replace(hour=0, minute=0, second=0)
+        logger.info(f"Первая синхронизация чатов, берем данные с {last_sync}")
+    else:
+        logger.info(f"Последняя синхронизация чатов: {last_sync}")
     
     # Получаем новые чаты из Avito
     logger.info("Получаем чаты из Avito...")
