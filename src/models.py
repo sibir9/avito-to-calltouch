@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 
 @dataclass
 class AvitoCall:
@@ -14,6 +14,14 @@ class AvitoCall:
     ad_id: Optional[str] = None
     ad_title: Optional[str] = None
     record_url: Optional[str] = None
+    waitingTime: Optional[int] = 0  # Добавляем поле waitingTime
+    
+    def __post_init__(self):
+        """Преобразуем duration из секунд в int если нужно"""
+        if isinstance(self.duration, str):
+            self.duration = int(self.duration)
+        if isinstance(self.waitingTime, str):
+            self.waitingTime = int(self.waitingTime)
 
 @dataclass
 class AvitoChat:
@@ -40,3 +48,8 @@ class CalltouchCall:
     comment: Optional[dict] = None
     addTags: Optional[List[dict]] = None
     customSources: Optional[dict] = None
+    
+    def __post_init__(self):
+        """Преобразуем waitingTime в int если нужно"""
+        if isinstance(self.waitingTime, str):
+            self.waitingTime = int(self.waitingTime)
