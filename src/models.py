@@ -14,7 +14,7 @@ class AvitoCall:
     ad_id: Optional[str] = None
     ad_title: Optional[str] = None
     record_url: Optional[str] = None
-    waitingTime: Optional[int] = 0  # Добавляем поле waitingTime
+    waitingTime: Optional[int] = 0
     
     def __post_init__(self):
         """Преобразуем duration из секунд в int если нужно"""
@@ -33,6 +33,14 @@ class AvitoChat:
     ad_id: str
     ad_title: str
     created_time: datetime
+    first_message: str = ""  # Первое сообщение для комментария
+    message_count: int = 0   # Количество сообщений
+    
+    def __post_init__(self):
+        if not self.first_message and self.messages:
+            self.first_message = self.messages[0].get("text", "")
+        if self.message_count == 0:
+            self.message_count = len(self.messages)
 
 @dataclass
 class CalltouchCall:
@@ -50,6 +58,18 @@ class CalltouchCall:
     customSources: Optional[dict] = None
     
     def __post_init__(self):
-        """Преобразуем waitingTime в int если нужно"""
         if isinstance(self.waitingTime, str):
             self.waitingTime = int(self.waitingTime)
+
+@dataclass
+class CalltouchRequest:
+    """Модель заявки для Calltouch API (для чатов)"""
+    requestId: str
+    phone: Optional[str]
+    userName: Optional[str]
+    comment: str
+    source: str
+    medium: str = "organic"
+    campaign: Optional[str] = None
+    content: Optional[str] = None
+    customFields: Optional[List[dict]] = None
