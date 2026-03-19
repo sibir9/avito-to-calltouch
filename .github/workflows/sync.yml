@@ -41,6 +41,9 @@ jobs:
       env:
         CALLTOUCH_ACCESS_TOKEN: ${{ secrets.CALLTOUCH_ACCESS_TOKEN }}
         CALLTOUCH_SITE_ID: ${{ secrets.CALLTOUCH_SITE_ID }}
+        AVITO_CLIENT_ID: ${{ secrets.AVITO_CLIENT_ID }}
+        AVITO_CLIENT_SECRET: ${{ secrets.AVITO_CLIENT_SECRET }}
+        AVITO_USER_ID: ${{ secrets.AVITO_USER_ID }}
       run: |
         python main.py
         echo "status=success" >> $GITHUB_OUTPUT
