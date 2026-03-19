@@ -81,7 +81,7 @@ class AvitoAPIClient:
             headers=headers,
             params=params,
             json=data,
-            timeout=30
+            timeout=60
         )
         
         if response.status_code == 200:
