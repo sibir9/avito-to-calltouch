@@ -62,42 +62,75 @@ class AvitoAPIClient:
     
     def _make_request(self, method: str, endpoint: str, params: Dict = None, data: Dict = None) -> Dict:
         """
-        Универсальный метод для запросов к API Avito
+        Универсальный метод для запросов к API Avito с улучшенной обработкой ошибок
         """
-        token = self._get_access_token()
-        
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
-        
-        url = f"https://api.avito.ru{endpoint}"
-        
-        print(f"Запрос к: {url}")
-        
-        response = requests.request(
-            method=method,
-            url=url,
-            headers=headers,
-            params=params,
-            json=data,
-            timeout=60
-        )
-        
-        if response.status_code == 200:
-            return response.json()
-        elif response.status_code == 429:
-            # Превышен лимит запросов
-            print("⚠️ Превышен лимит запросов, ждем 60 секунд...")
-            time.sleep(60)
-            return self._make_request(method, endpoint, params, data)
-        elif response.status_code == 401:
-            print("❌ Ошибка авторизации, пробуем обновить токен...")
-            self.access_token = None
-            self.token_expires = None
-            return self._make_request(method, endpoint, params, data)
-        else:
-            raise Exception(f"Ошибка API Avito: {response.status_code} - {response.text}")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                token = self._get_access_token()
+                
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                }
+                
+                url = f"https://api.avito.ru{endpoint}"
+                
+                print(f"Запрос к: {url}")
+                
+                response = requests.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    params=params,
+                    json=data,
+                    timeout=60  # Увеличен timeout до 60 секунд
+                )
+                
+                if response.status_code == 200:
+                    return response.json()
+                elif response.status_code == 401:
+                    print(f"❌ Ошибка 401 Unauthorized, обновляем токен...")
+                    self.access_token = None
+                    self.token_expires = None
+                    if attempt < max_retries - 1:
+                        continue
+                    else:
+                        raise Exception(f"Ошибка авторизации после {max_retries} попыток")
+                elif response.status_code == 429:
+                    print("⚠️ Превышен лимит запросов, ждем 60 секунд...")
+                    time.sleep(60)
+                    continue
+                else:
+                    # Проверяем, не пришел ли JSON с ошибкой
+                    try:
+                        error_data = response.json()
+                        if "message" in error_data and "token" in error_data["message"].lower():
+                            print(f"❌ Ошибка токена: {error_data}")
+                            self.access_token = None
+                            self.token_expires = None
+                            if attempt < max_retries - 1:
+                                continue
+                    except:
+                        pass
+                        
+                    raise Exception(f"Ошибка API Avito: {response.status_code} - {response.text}")
+                    
+            except requests.exceptions.Timeout:
+                if attempt < max_retries - 1:
+                    print(f"⏳ Таймаут, попытка {attempt + 2}...")
+                    time.sleep(5)
+                    continue
+                else:
+                    raise Exception(f"Таймаут после {max_retries} попыток")
+                    
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    print(f"⚠️ Ошибка, повторная попытка {attempt + 2}: {e}")
+                    time.sleep(2)
+                    continue
+                else:
+                    raise
     
     def get_calls_since(self, since_time: datetime) -> List[AvitoCall]:
         """
@@ -309,61 +342,84 @@ class AvitoAPIClient:
     
     def _get_chat_messages(self, chat_id: str, limit: int = 100) -> List[dict]:
         """
-        Получает все сообщения чата через V3 API
+        Получает все сообщения чата через V3 API с повторными попытками
         """
         try:
             messages = []
             offset = 0
+            max_retries = 3
             
             while True:
-                params = {
-                    "limit": min(100, limit),
-                    "offset": offset
-                }
-                
-                response = self._make_request(
-                    "GET",
-                    f"/messenger/v3/accounts/{self.user_id}/chats/{chat_id}/messages/",
-                    params=params
-                )
-                
-                batch = response if isinstance(response, list) else response.get("messages", [])
-                messages.extend(batch)
-                
-                if len(batch) < 100:
-                    break
-                    
-                offset += 100
-                
-            # Преобразуем в удобный формат
-            formatted_messages = []
-            for msg in messages:
-                content = msg.get("content", {})
-                text = ""
-                if "text" in content:
-                    text = content["text"]
-                elif "image" in content:
-                    text = "[Изображение]"
-                
-                # Определяем направление сообщения
-                direction = "in"
-                if msg.get("author_id") == int(self.user_id):
-                    direction = "out"
-                
-                formatted_messages.append({
-                    "id": msg["id"],
-                    "text": text,
-                    "time": msg.get("created", ""),
-                    "direction": direction,
-                    "author_id": msg.get("author_id"),
-                    "is_read": msg.get("is_read", False)
-                })
-            
-            return formatted_messages
-            
+                for attempt in range(max_retries):
+                    try:
+                        params = {
+                            "limit": min(100, limit),
+                            "offset": offset
+                        }
+                        
+                        response = self._make_request(
+                            "GET",
+                            f"/messenger/v3/accounts/{self.user_id}/chats/{chat_id}/messages/",
+                            params=params
+                        )
+                        
+                        batch = response if isinstance(response, list) else response.get("messages", [])
+                        messages.extend(batch)
+                        
+                        if len(batch) < 100:
+                            return self._format_messages(messages)
+                            
+                        offset += 100
+                        break  # успешно, выходим из цикла попыток
+                        
+                    except Exception as e:
+                        # Если ошибка связана с токеном - обновляем принудительно
+                        error_str = str(e)
+                        if "401" in error_str or "token" in error_str.lower() or "unauthorized" in error_str.lower():
+                            print(f"🔄 Ошибка авторизации, принудительно обновляем токен...")
+                            self.access_token = None
+                            self.token_expires = None
+                            # Пробуем еще раз с новым токеном
+                            continue
+                        
+                        if attempt == max_retries - 1:  # последняя попытка
+                            print(f"⚠️ Не удалось получить сообщения чата {chat_id} после {max_retries} попыток: {e}")
+                            return self._format_messages(messages)
+                        print(f"⏳ Повторная попытка {attempt + 2} для чата {chat_id}...")
+                        time.sleep(2)
+                        
         except Exception as e:
             print(f"⚠️ Ошибка при получении сообщений чата {chat_id}: {e}")
             return []
+    
+    def _format_messages(self, raw_messages: List[dict]) -> List[dict]:
+        """
+        Форматирует сырые сообщения в удобный формат
+        """
+        formatted_messages = []
+        for msg in raw_messages:
+            content = msg.get("content", {})
+            text = ""
+            if "text" in content:
+                text = content["text"]
+            elif "image" in content:
+                text = "[Изображение]"
+            
+            # Определяем направление сообщения
+            direction = "in"
+            if msg.get("author_id") == int(self.user_id):
+                direction = "out"
+            
+            formatted_messages.append({
+                "id": msg["id"],
+                "text": text,
+                "time": msg.get("created", ""),
+                "direction": direction,
+                "author_id": msg.get("author_id"),
+                "is_read": msg.get("is_read", False)
+            })
+        
+        return formatted_messages
 
 # Для обратной совместимости
 AvitoClient = AvitoAPIClient
