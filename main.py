@@ -20,6 +20,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Отладка: проверяем переменные окружения
+import os
+logger.info("🔍 ПРОВЕРКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ:")
+logger.info(f"  CALLTOUCH_ACCESS_TOKEN: {'✅ установлен' if os.getenv('CALLTOUCH_ACCESS_TOKEN') else '❌ ОТСУТСТВУЕТ'}")
+logger.info(f"  CALLTOUCH_SITE_ID: {os.getenv('CALLTOUCH_SITE_ID')}")
+logger.info(f"  AVITO_CLIENT_ID: {'✅ установлен' if os.getenv('AVITO_CLIENT_ID') else '❌ ОТСУТСТВУЕТ'}")
+logger.info(f"  AVITO_CLIENT_SECRET: {'✅ установлен' if os.getenv('AVITO_CLIENT_SECRET') else '❌ ОТСУТСТВУЕТ'}")
+logger.info(f"  AVITO_USER_ID: {os.getenv('AVITO_USER_ID')}")
+
 def process_calls(state_manager, avito, calltouch):
     """Обработка звонков"""
     logger.info("="*50)
